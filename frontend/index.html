@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Explore Python project architecture as a clear 2D map.">
+  <meta name="description" content="Explore Python project architecture as a liquid glass 2D map.">
   <title>PyArch · Architecture workspace</title>
   <link rel="stylesheet" href="/style.css">
 </head>
@@ -16,6 +16,7 @@
         <button id="analyze-button" class="primary-button">Analyze project <span>↗</span></button>
         <button id="export-button" class="ghost-button" disabled>Export JSON</button>
       </div>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch color mode"><span class="theme-icon">☾</span><span class="theme-label">Dark</span></button>
       <div class="topbar-status"><span id="status-dot" class="status-dot"></span><span id="status-text">Ready to scan</span></div>
     </header>
 
@@ -39,5 +40,6 @@
     </div>
   </div>
   <script src="/app.js"></script>
+  <script src="/theme.js"></script>
 </body>
 </html>
