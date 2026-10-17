@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Explore Python project architecture as a clear 2D map.">
+  <title>PyArch · Architecture workspace</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-lockup"><div class="brand-mark">P</div><div><div class="brand-name">PyArch</div><div class="brand-subtitle">Architecture workspace</div></div></div>
+      <div class="scan-controls">
+        <label class="path-field"><span>Project path</span><input id="path-input" value="../demo_project" placeholder="Backend-local directory path"></label>
+        <button id="analyze-button" class="primary-button">Analyze project <span>↗</span></button>
+        <button id="export-button" class="ghost-button" disabled>Export JSON</button>
+      </div>
+      <div class="topbar-status"><span id="status-dot" class="status-dot"></span><span id="status-text">Ready to scan</span></div>
+    </header>
+
+    <div class="workspace">
+      <aside class="project-rail">
+        <div class="rail-heading"><span class="eyebrow">Project map</span><span class="live-pill"><i></i> Local</span></div>
+        <div class="rail-root" id="rail-root"><span class="folder-icon">⌂</span><span>../demo_project</span></div>
+        <div id="stats"></div>
+        <div class="rail-section"><div class="section-label"><span>Files</span><b id="file-count">0</b></div><div id="file-list" class="file-list"><div class="rail-placeholder">Run a scan to populate the project map.</div></div></div>
+        <div class="rail-section relation-section"><div class="section-label"><span>Relationships</span></div><div id="relation-filters"></div></div>
+        <div class="rail-footer">AST scan · source stays on this machine</div>
+      </aside>
+
+      <main class="map-panel">
+        <div class="map-header"><div><span class="eyebrow">Overview</span><h1>Architecture map</h1></div><div class="map-tools"><label class="search-field"><span>⌕</span><input id="search-input" placeholder="Search files or symbols"></label><span id="map-summary" class="map-summary"></span></div></div>
+        <div id="map-stage" class="map-stage"></div>
+        <div id="symbol-dock"></div>
+      </main>
+
+      <aside class="inspector"><div class="inspector-heading"><span class="eyebrow">Inspector</span><span id="inspector-index" class="inspector-index">—</span></div><div id="inspector-content"></div></aside>
+    </div>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
