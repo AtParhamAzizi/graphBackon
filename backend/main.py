@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 from .analyzer import analyze_directory
 
-app = FastAPI(title="PyArch Graph API", version="1.1")
+app = FastAPI(title="PyArch Graph API", version="1.2")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:8000", "http://127.0.0.1:8000"], allow_methods=["*"], allow_headers=["*"])
 jobs = {}
 
@@ -66,7 +66,10 @@ def node_details(job_id: str, node_id: str):
     node = next((item for item in result["nodes"] if item["id"] == node_id), None)
     if not node:
         raise HTTPException(404, "Unknown node")
-    related = [edge for edge in result["edges"] if edge["source"] == node_id or edge["target"] == node_id]
+    member_ids = {node_id}
+    if node["kind"] == "file":
+        member_ids.update(item["id"] for item in result["nodes"] if item.get("file_id") == node_id)
+    related = [edge for edge in result["edges"] if edge["source"] in member_ids or edge["target"] in member_ids]
     return {"node": node, "relationships": related}
 
 
