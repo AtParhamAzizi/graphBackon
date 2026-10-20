@@ -1,45 +1,113 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Explore Python project architecture as a liquid glass 2D map.">
-  <title>PyArch · Architecture workspace</title>
+  <meta name="description" content="Explore your Python architecture in an animated, interactive orbital graph.">
+  <meta name="color-scheme" content="dark light">
+  <title>PyArch · Code in orbit</title>
   <link rel="stylesheet" href="/style.css">
+  <script src="/theme.js" defer></script>
+  <script src="/app.js" defer></script>
 </head>
 <body>
+  <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <symbol id="icon-orbit" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="11" ry="5" transform="rotate(-35 12 12)"/><circle cx="20" cy="6" r="2" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="icon-code" viewBox="0 0 24 24"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 16"/></symbol>
+      <symbol id="icon-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zm0 0v6h6M8 13h8m-8 4h5"/></symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+      <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+      <symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 15v5h16v-5"/></symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+      <symbol id="icon-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+      <symbol id="icon-fit" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="icon-expand" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M3 3l6 6m12-6-6 6M3 21l6-6m12 6-6-6"/></symbol>
+      <symbol id="icon-pause" viewBox="0 0 24 24"><path d="M8 5v14m8-14v14" stroke-width="4"/></symbol>
+      <symbol id="icon-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z"/></symbol>
+      <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M21 13A9 9 0 0 1 11 3a9 9 0 1 0 10 10Z"/></symbol>
+      <symbol id="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+      <symbol id="icon-filter" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10m-7 6h4"/></symbol>
+      <symbol id="icon-focus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 1v4m0 14v4M1 12h4m14 0h4"/></symbol>
+      <symbol id="icon-list" viewBox="0 0 24 24"><path d="M9 5h12M9 12h12M9 19h12M3 5h1m-1 7h1m-1 7h1"/></symbol>
+      <symbol id="icon-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6zm-4 9 3 3 5-6"/></symbol>
+      <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></symbol>
+    </defs>
+  </svg>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand-lockup"><div class="brand-mark">P</div><div><div class="brand-name">PyArch</div><div class="brand-subtitle">Architecture workspace</div></div></div>
-      <div class="scan-controls">
-        <label class="path-field"><span>Project path</span><input id="path-input" value="../demo_project" placeholder="Backend-local directory path"></label>
-        <button id="analyze-button" class="primary-button">Analyze project <span>↗</span></button>
-        <button id="export-button" class="ghost-button" disabled>Export JSON</button>
+      <a class="brand-lockup" href="/" aria-label="PyArch home">
+        <span class="brand-mark"><svg class="icon"><use href="#icon-orbit"/></svg></span>
+        <span><strong class="brand-name">pyarch<span class="brand-dot">.</span></strong><span class="brand-subtitle">Code in orbit</span></span>
+      </a>
+      <form id="scan-form" class="scan-controls">
+        <label class="path-field" for="path-input"><svg class="icon"><use href="#icon-file"/></svg><span class="sr-only">Project directory on this machine</span><input id="path-input" value="demo_project" placeholder="Enter a project directory" autocomplete="off" spellcheck="false"><span class="path-hint">LOCAL PATH</span></label>
+        <button id="analyze-button" class="primary-button" type="submit"><span>Analyze project</span><svg class="icon"><use href="#icon-arrow"/></svg></button>
+      </form>
+      <div class="topbar-actions">
+        <span class="topbar-status" role="status" aria-live="polite"><span id="status-dot" class="status-dot"></span><span id="status-text">Ready to explore</span></span>
+        <button id="export-button" class="icon-button" type="button" title="Export graph as JSON" aria-label="Export graph as JSON" disabled><svg class="icon"><use href="#icon-download"/></svg></button>
+        <button id="theme-toggle" class="icon-button theme-toggle" type="button" title="Switch color theme" aria-label="Switch to light mode"><span class="theme-icon"><svg class="icon"><use href="#icon-sun"/></svg></span><span class="theme-label sr-only">Dark</span></button>
       </div>
-      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch color mode"><span class="theme-icon">☾</span><span class="theme-label">Dark</span></button>
-      <div class="topbar-status"><span id="status-dot" class="status-dot"></span><span id="status-text">Ready to scan</span></div>
     </header>
 
-    <div class="workspace">
-      <aside class="project-rail">
-        <div class="rail-heading"><span class="eyebrow">Project map</span><span class="live-pill"><i></i> Local</span></div>
-        <div class="rail-root" id="rail-root"><span class="folder-icon">⌂</span><span>../demo_project</span></div>
+    <div class="workspace" id="workspace">
+      <aside class="project-rail" aria-label="Project explorer">
+        <div class="panel-heading"><span class="eyebrow">Explorer</span><span class="local-pill"><i></i> Local workspace</span></div>
+        <div class="rail-root" id="rail-root"><svg class="icon"><use href="#icon-code"/></svg><span>demo_project</span></div>
         <div id="stats"></div>
-        <div class="rail-section"><div class="section-label"><span>Files</span><b id="file-count">0</b></div><div id="file-list" class="file-list"><div class="rail-placeholder">Run a scan to populate the project map.</div></div></div>
-        <div class="rail-section relation-section"><div class="section-label"><span>Relationships</span></div><div id="relation-filters"></div></div>
-        <div class="rail-footer">AST scan · source stays on this machine</div>
+        <section class="file-section"><div class="section-label"><span>Project files</span><b id="file-count">0</b></div><div id="file-list" class="file-list"></div></section>
+        <section class="relation-section"><div class="section-label"><span>Relationships</span><button class="text-button" type="button" data-action="show-all">Show all</button></div><div id="relation-filters"></div></section>
+        <div class="rail-footer"><svg class="icon"><use href="#icon-shield"/></svg><span>Source stays on your machine</span></div>
       </aside>
 
-      <main class="map-panel">
-        <div class="map-header"><div><span class="eyebrow">Overview</span><h1>Architecture map</h1></div><div class="map-tools"><label class="search-field"><span>⌕</span><input id="search-input" placeholder="Search files or symbols"></label><span id="map-summary" class="map-summary"></span></div></div>
-        <div id="map-stage" class="map-stage"></div>
+      <main class="map-panel" id="map-panel">
+        <div class="map-header">
+          <div><div class="eyebrow"><span class="heading-spark"></span> Architecture workspace</div><h1>Your code, <span>connected.</span></h1><p>Follow the relationships. Find the bigger picture.</p></div>
+          <label class="search-field" for="search-input"><svg class="icon"><use href="#icon-search"/></svg><span class="sr-only">Search files or symbols</span><input id="search-input" placeholder="Find a file or symbol..." autocomplete="off"><kbd>/</kbd></label>
+        </div>
+        <div class="graph-toolbar">
+          <div class="graph-view-controls" role="group" aria-label="Graph detail">
+            <button type="button" data-graph-view="files" aria-pressed="true"><svg class="icon"><use href="#icon-file"/></svg>Files</button>
+            <button type="button" data-graph-view="symbols" aria-pressed="false"><svg class="icon"><use href="#icon-code"/></svg>Files + symbols</button>
+          </div>
+          <div class="graph-toolbar-actions">
+            <span id="map-summary" class="map-summary"></span>
+            <button class="icon-button compact explorer-toggle" type="button" data-action="explorer" aria-label="Toggle file explorer" aria-pressed="false"><svg class="icon"><use href="#icon-list"/></svg></button>
+            <button class="icon-button compact" type="button" data-action="focus" aria-label="Focus selected node connections" aria-pressed="false" title="Focus selected node connections"><svg class="icon"><use href="#icon-focus"/></svg></button>
+            <button class="icon-button compact" type="button" data-action="expand" aria-label="Expand graph workspace" aria-pressed="false" title="Expand graph workspace"><svg class="icon"><use href="#icon-expand"/></svg></button>
+          </div>
+        </div>
+
+        <div class="graph-canvas" id="graph-canvas">
+          <div class="scene-atmosphere" aria-hidden="true"><div class="ambient-glow glow-one"></div><div class="ambient-glow glow-two"></div><div class="star-field"></div></div>
+          <div class="canvas-caption"><span class="live-dot"></span><span>ORBITAL VIEW</span><span class="caption-divider"></span><span id="canvas-caption">Waiting for a project</span></div>
+          <div id="map-stage" class="map-stage" tabindex="0" aria-label="Interactive architecture graph. Drag to pan, scroll to zoom. Press plus or minus to zoom, zero to fit, and Escape to clear selection." aria-describedby="graph-instructions"></div>
+          <div id="edge-tooltip" class="edge-tooltip" role="tooltip" hidden></div>
+          <div class="canvas-bottom">
+            <div class="canvas-legend"><span><i class="legend-dot"></i>File</span><span><i class="legend-flow"></i>Directed relation</span></div>
+            <div class="canvas-controls">
+              <button id="motion-toggle" type="button" class="motion-button" data-action="motion" aria-pressed="true" title="Pause graph animations"><svg class="icon"><use href="#icon-pause"/></svg><span>Live motion</span></button>
+              <span class="control-divider"></span>
+              <button type="button" class="icon-button compact" data-action="zoom-out" aria-label="Zoom out" title="Zoom out (−)"><svg class="icon"><use href="#icon-minus"/></svg></button>
+              <button type="button" id="zoom-label" class="zoom-label" data-action="fit" title="Fit graph (0)">100%</button>
+              <button type="button" class="icon-button compact" data-action="zoom-in" aria-label="Zoom in" title="Zoom in (+)"><svg class="icon"><use href="#icon-plus"/></svg></button>
+              <button type="button" class="icon-button compact" data-action="fit" aria-label="Fit graph to view" title="Fit graph (0)"><svg class="icon"><use href="#icon-fit"/></svg></button>
+            </div>
+          </div>
+          <div id="error-toast" class="toast" role="alert" hidden></div>
+        </div>
+        <div class="map-footer"><span id="graph-instructions"><span class="mouse-hint">↔</span> Drag to explore <span class="footer-dot">·</span> Scroll to zoom</span><span>PYTHON <span class="footer-dot">/</span> STATIC AST</span></div>
         <div id="symbol-dock"></div>
       </main>
 
-      <aside class="inspector"><div class="inspector-heading"><span class="eyebrow">Inspector</span><span id="inspector-index" class="inspector-index">—</span></div><div id="inspector-content"></div></aside>
+      <aside class="inspector" aria-label="Node inspector">
+        <div class="panel-heading"><span class="eyebrow">Inspector</span><button class="icon-button compact" type="button" data-action="clear-selection" aria-label="Clear selection" title="Clear selection (Esc)"><svg class="icon"><use href="#icon-close"/></svg></button></div>
+        <div id="inspector-content"></div>
+        <div class="inspector-footer"><svg class="icon"><use href="#icon-info"/></svg><span>Every link is backed by source evidence.</span></div>
+      </aside>
     </div>
   </div>
-  <script src="/app.js"></script>
-  <script src="/theme.js"></script>
 </body>
 </html>

@@ -1,20 +1,25 @@
 (() => {
   const root = document.documentElement;
   const button = document.getElementById("theme-toggle");
-  const icon = button.querySelector(".theme-icon");
-  const label = button.querySelector(".theme-label");
-  const saved = localStorage.getItem("pyarch-theme");
-  const initial = saved || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-
-  const apply = (theme) => {
+  let saved = null;
+  try { saved = localStorage.getItem("pyarch-theme"); } catch {}
+  const preference = window.matchMedia("(prefers-color-scheme: light)");
+  const validTheme = saved === "light" || saved === "dark" ? saved : null;
+  const apply = (theme, remember = false) => {
     root.dataset.theme = theme;
     const light = theme === "light";
-    icon.textContent = light ? "☀" : "☾";
-    label.textContent = light ? "Light" : "Dark";
+    button.querySelector("use").setAttribute("href", light ? "#icon-moon" : "#icon-sun");
+    button.querySelector(".theme-label").textContent = light ? "Light" : "Dark";
     button.setAttribute("aria-label", `Switch to ${light ? "dark" : "light"} mode`);
-    localStorage.setItem("pyarch-theme", theme);
+    button.title = `Switch to ${light ? "dark" : "light"} mode`;
+    if (remember) {
+      saved = theme;
+      try { localStorage.setItem("pyarch-theme", theme); } catch {}
+    }
   };
-
-  apply(initial);
-  button.addEventListener("click", () => apply(root.dataset.theme === "light" ? "dark" : "light"));
+  apply(validTheme || (preference.matches ? "light" : "dark"));
+  button.addEventListener("click", () => apply(root.dataset.theme === "light" ? "dark" : "light", true));
+  preference.addEventListener("change", () => {
+    if (saved !== "light" && saved !== "dark") apply(preference.matches ? "light" : "dark");
+  });
 })();

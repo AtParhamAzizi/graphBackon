@@ -4,7 +4,7 @@ A small user-management application with 25 Python files and 100 symbols. It con
 
 ## Explore the graph
 
-Scan the `demo_project` directory from PyArch, then select **Files + symbols + dependencies**. The file view highlights cross-module dependencies; the expanded view also shows methods, nested functions, recursion, external endpoints, and same-file relationships. Use the relationship filters to isolate one type, and select a node to navigate its evidence.
+Scan the `demo_project` directory from PyArch, then select **Files + symbols + dependencies**. Files occupy the outer circle; the expanded view adds inner rings for methods, nested functions, and external dependencies, with animated arrows for recursion and same-file relationships too. Drag to pan, scroll to zoom, and use the relationship filters to isolate one type. Select a node to navigate its evidence, or pause motion to inspect a still view.
 
 ## Relationship examples
 
