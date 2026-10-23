@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .analyzer import analyze_directory
+from .remote import fetch_github_repo, parse_github_url
 
 app = FastAPI(title="PyArch Graph API", version="1.2")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:8000", "http://127.0.0.1:8000"], allow_methods=["*"], allow_headers=["*"])
@@ -29,7 +30,9 @@ def run_job(job_id, request):
         def progress(index, total, message):
             jobs[job_id].update(progress=round(index / max(total, 1) * 100), message=message)
 
-        result = analyze_directory(request.path, request.exclusions, progress)
+        path = fetch_github_repo(request.path, progress) if parse_github_url(request.path) else request.path
+        result = analyze_directory(path, request.exclusions, progress)
+        result["source_url"] = request.path if path != request.path else None
         jobs[job_id].update(status="complete", progress=100, message="Analysis complete", result=result)
     except Exception as error:
         jobs[job_id].update(status="error", progress=100, message=str(error))
@@ -42,9 +45,10 @@ def health():
 
 @app.post("/api/analyses")
 def start(request: AnalyzeRequest):
-    path = Path(request.path).expanduser().resolve()
-    if not path.exists() or not path.is_dir():
-        raise HTTPException(400, "Directory does not exist or is not a directory")
+    if not parse_github_url(request.path):
+        path = Path(request.path).expanduser().resolve()
+        if not path.exists() or not path.is_dir():
+            raise HTTPException(400, "Enter an existing folder or a GitHub URL like https://github.com/owner/repo")
     job_id = str(uuid.uuid4())
     jobs[job_id] = {"status": "queued", "progress": 0, "message": "Queued"}
     threading.Thread(target=run_job, args=(job_id, request), daemon=True).start()
