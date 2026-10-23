@@ -330,6 +330,12 @@ class ProjectAnalyzer:
   if not self.root.exists() or not self.root.is_dir():raise ValueError("Directory does not exist or is not a directory")
   self._parse_files(progress)
   package_root=(self.root/"__init__.py").is_file() and self.root.name.isidentifier()
+  suffixes={}
+  for file in self.files.values():
+   parts=file.module.split(".") if file.module else []
+   for start in range(1,len(parts)):suffixes.setdefault(".".join(parts[start:]),set()).add(file.id)
+  for alias,owners in suffixes.items():
+   if len(owners)==1:self.module_to_file.setdefault(alias,next(iter(owners)))
   for file in self.files.values():
    if file.path.startswith("src/"):self.module_to_file.setdefault(file.module.removeprefix("src."),file.id)
    if package_root:self.module_to_file.setdefault(".".join(part for part in (self.root.name,file.module) if part),file.id)
