@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import threading
 import uuid
 from pathlib import Path
@@ -100,6 +101,6 @@ def export(job_id: str):
     return JSONResponse(job["result"], headers={"Content-Disposition": "attachment; filename=pyarch-analysis.json"})
 
 
-frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+frontend_dir = Path(__file__).resolve().parent.parent / os.environ.get("PYARCH_FRONTEND", "frontend")
 if frontend_dir.exists():
     app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")

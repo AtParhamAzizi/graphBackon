@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PyArch Graph · Lite</title>
+  <link rel="stylesheet" href="style.css">
+  <script>document.documentElement.dataset.theme = localStorage.getItem("pyarch-lite-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
+</head>
+<body>
+  <div class="blobs" aria-hidden="true"><i></i><i></i><i></i></div>
+
+  <header class="glass topbar">
+    <div class="brand"><span class="drop"></span><b>PyArch</b><span class="muted">lite</span></div>
+    <form id="scan-form" class="scan">
+      <input id="path" placeholder="Project folder, e.g. ..\demo_project" required>
+      <input id="exclude" placeholder="Exclude (comma separated)">
+      <button class="pill primary" type="submit">Analyze</button>
+    </form>
+    <button id="theme" class="pill round" type="button" aria-label="Toggle theme">◐</button>
+  </header>
+
+  <div id="progress" class="progress" hidden><span></span></div>
+
+  <main class="layout">
+    <aside class="glass panel">
+      <div class="stats" id="stats">
+        <div><b>–</b><small>files</small></div>
+        <div><b>–</b><small>symbols</small></div>
+        <div><b>–</b><small>links</small></div>
+      </div>
+      <input id="filter" class="filter" placeholder="Filter files…">
+      <ul id="files" class="files"><li class="muted">Analyze a project to begin.</li></ul>
+    </aside>
+
+    <section class="glass ring-wrap">
+      <svg id="ring" viewBox="-500 -500 1000 1000" role="img" aria-label="Dependency ring"></svg>
+      <div class="zoom glass">
+        <button type="button" data-zoom="in" aria-label="Zoom in" title="Zoom in (+)">+</button>
+        <button type="button" data-zoom="fit" id="zoom-level" aria-label="Fit ring" title="Fit (0)">100%</button>
+        <button type="button" data-zoom="out" aria-label="Zoom out" title="Zoom out (−)">−</button>
+      </div>
+      <p id="hint" class="hint">Every file becomes a bead on the ring.<br>Threads show how they depend on each other.</p>
+      <a id="export" class="pill export" hidden download>Export JSON</a>
+    </section>
+
+    <aside class="glass panel inspector" id="inspector">
+      <p class="muted">Pick a bead or a file to inspect it.</p>
+    </aside>
+  </main>
+
+  <div id="toast" class="glass toast" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>
