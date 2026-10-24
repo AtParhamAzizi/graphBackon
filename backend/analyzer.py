@@ -3,7 +3,9 @@ import ast, builtins, fnmatch, hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-DEFAULT_EXCLUDED={".git",".venv","venv","env","__pycache__","node_modules","dist","build",".mypy_cache",".pytest_cache",".tox",".eggs",".idea",".vscode"}
+DEFAULT_EXCLUDED={".git",".venv","venv","env","__pycache__","node_modules","dist","build",".mypy_cache",".pytest_cache",".tox",".eggs",".idea",".vscode",".gradle",".next",".nuxt","coverage","target"}
+TEXT_EXTENSIONS={".py",".pyi",".js",".jsx",".mjs",".cjs",".ts",".tsx",".java",".kt",".kts",".go",".rs",".rb",".php",".cs",".c",".h",".cc",".cpp",".cxx",".hpp",".swift",".m",".mm",".scala",".sh",".bash",".zsh",".fish",".ps1",".bat",".cmd",".html",".htm",".css",".scss",".sass",".less",".vue",".svelte",".astro",".sql",".graphql",".gql",".json",".jsonc",".yaml",".yml",".toml",".ini",".cfg",".conf",".env",".xml",".svg",".md",".mdx",".txt",".rst",".csv",".lock"}
+TEXT_FILENAMES={"Dockerfile","Containerfile","Makefile","justfile","Procfile","Gemfile","Rakefile","LICENSE","LICENSE.txt","README","README.md","CHANGELOG","CHANGELOG.md",".dockerignore",".editorconfig",".prettierrc",".eslintrc"}
 def stable_id(prefix,value): return f"{prefix}:{hashlib.sha1(value.encode()).hexdigest()[:20]}"
 @dataclass
 class FileRecord:
@@ -45,10 +47,11 @@ class ProjectAnalyzer:
   lines=file.source.splitlines(); return "\n".join(f"{n:>4} | {lines[n-1]}" for n in range(max(1,line),min(len(lines),end_line)+1))
  def _parse_files(self,progress):
   patterns=self._read_gitignore(); candidates=[]
-  for path in self.root.rglob("*.py"):
+  for path in self.root.rglob("*"):
    try:
     rel=path.relative_to(self.root).as_posix()
-    if path.is_symlink() or self._ignored(path) or any(fnmatch.fnmatch(rel,p) for p in patterns):continue
+    if not path.is_file() or path.is_symlink() or self._ignored(path) or any(fnmatch.fnmatch(rel,p) for p in patterns):continue
+    if path.suffix.lower() not in TEXT_EXTENSIONS and path.name not in TEXT_FILENAMES:continue
     candidates.append(path)
    except (OSError,ValueError):continue
   candidates.sort()
@@ -58,10 +61,15 @@ class ProjectAnalyzer:
    if progress:progress(i,len(candidates),f"Parsing {rel}")
    try:
     if path.stat().st_size>self.max_bytes:self.warnings.append({"code":"FILE_TOO_LARGE","message":f"Skipped {rel} because it exceeds {self.max_bytes} bytes."});continue
-    source=path.read_text(encoding="utf-8"); tree=ast.parse(source,filename=rel)
+    source=path.read_text(encoding="utf-8")
+    if "\x00" in source:self.warnings.append({"code":"BINARY_FILE","message":f"Skipped {rel} because it contains binary data."});continue
+    tree=ast.parse(source,filename=rel) if path.suffix.lower()==".py" else None
    except SyntaxError as e:self.warnings.append({"code":"SYNTAX_ERROR","message":f"{rel}:{e.lineno}: {e.msg}"});continue
    except (OSError,UnicodeDecodeError) as e:self.warnings.append({"code":"READ_ERROR","message":f"{rel}: {e}"});continue
-   module=self._module_name(path); fid=stable_id("file",rel); self.files[fid]=FileRecord(fid,rel,module,len(source.splitlines()),source); self.module_to_file[module]=fid; self.trees[fid]=tree; self._collect_symbols(self.files[fid],tree)
+   module=self._module_name(path) if tree is not None else path.stem
+   fid=stable_id("file",rel); self.files[fid]=FileRecord(fid,rel,module,len(source.splitlines()),source)
+   if tree is not None:
+    self.module_to_file[module]=fid; self.trees[fid]=tree; self._collect_symbols(self.files[fid],tree)
  def _collect_symbols(self,file,tree):
   self.bindings[file.id]={}; self.parents[file.id]=None; self.scoped_nodes[file.id]=[]
   def visit(node,scope,prefix):
@@ -346,7 +354,7 @@ class ProjectAnalyzer:
   for entity in sorted(external):
    parts=entity.split(":",2); kind=parts[1] if len(parts)>1 else "unknown"; label=parts[2] if len(parts)>2 else parts[-1]; nodes.append({"id":entity,"kind":"external","external_type":kind,"label":label})
   file_edges=self._aggregate(self.edges)
-  return {"schema_version":"1.2","root":str(self.root),"project":{"is_python":bool(self.files),"metadata":[n for n in ("pyproject.toml","setup.py","requirements.txt") if (self.root/n).exists()]},"nodes":nodes,"edges":self.edges,"file_edges":file_edges,"warnings":self.warnings,"stats":{"files":len(self.files),"symbols":len(self.symbols),"edges":len(self.edges),"file_edges":len(file_edges)},"limitations":["Static AST analysis cannot fully recover dynamic dispatch, reflection, monkey-patching, generated code, or runtime decorator behavior.","Assignments, receiver types, and inherited methods use static bindings; conditional rebinding and multiple-inheritance runtime order may differ.","Wildcard imports are reported but their exported names are not guessed.","HTTP requests remain separate from local CALLS and are not mapped to local handlers without explicit static evidence."]}
+  return {"schema_version":"1.3","root":str(self.root),"project":{"is_python":any(Path(file.path).suffix.lower()==".py" for file in self.files.values()),"languages":sorted({Path(file.path).suffix.lower() for file in self.files.values() if Path(file.path).suffix}),"metadata":[n for n in ("pyproject.toml","setup.py","requirements.txt","package.json","Cargo.toml","go.mod","pom.xml","build.gradle") if (self.root/n).exists()]},"nodes":nodes,"edges":self.edges,"file_edges":file_edges,"warnings":self.warnings,"stats":{"files":sum(Path(file.path).suffix.lower()==".py" for file in self.files.values()),"indexed_files":len(self.files),"symbols":len(self.symbols),"edges":len(self.edges),"file_edges":len(file_edges)},"limitations":["Python files receive static AST symbol and relationship analysis; other readable project files are indexed and available for source inspection.","Static AST analysis cannot fully recover dynamic dispatch, reflection, monkey-patching, generated code, or runtime decorator behavior.","Assignments, receiver types, and inherited methods use static bindings; conditional rebinding and multiple-inheritance runtime order may differ.","Wildcard imports are reported but their exported names are not guessed.","HTTP requests remain separate from local CALLS and are not mapped to local handlers without explicit static evidence."]}
 def analyze_directory(path,exclusions=None,progress=None):return ProjectAnalyzer(path,exclusions).scan(progress)
 
 

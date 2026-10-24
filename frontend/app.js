@@ -90,7 +90,7 @@ function positions(list) {
 
 function renderStats() {
   const stats = state.data?.stats;
-  $("#stats").innerHTML = `<div class="stat-grid"><div><strong>${stats ? number(stats.files) : "—"}</strong><span>Files</span></div><div><strong>${stats ? number(stats.symbols) : "—"}</strong><span>Symbols</span></div><div><strong>${stats ? number(stats.edges) : "—"}</strong><span>Relations</span></div></div>`;
+  $("#stats").innerHTML = `<div class="stat-grid"><div><strong>${stats ? number(stats.indexed_files ?? stats.files) : "—"}</strong><span>Files</span></div><div><strong>${stats ? number(stats.symbols) : "—"}</strong><span>Symbols</span></div><div><strong>${stats ? number(stats.edges) : "—"}</strong><span>Relations</span></div></div>`;
   $("#file-count").textContent = files().length;
   const root = state.data?.root || $("#path-input").value;
   $("#rail-root").title = root;

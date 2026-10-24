@@ -61,7 +61,7 @@ function load(result) {
   state.files = result.nodes.filter((node) => node.kind === "file").sort((a, b) => a.path.localeCompare(b.path));
   const fileIds = new Set(state.files.map((file) => file.id));
   state.fileLinks = result.file_edges.filter((edge) => fileIds.has(edge.source) && fileIds.has(edge.target));
-  const values = [result.stats.files, result.stats.symbols, result.stats.edges];
+  const values = [result.stats.indexed_files ?? result.stats.files, result.stats.symbols, result.stats.edges];
   document.querySelectorAll("#stats b").forEach((element, index) => (element.textContent = values[index]));
   $("#hint").hidden = state.files.length > 0;
   const exportLink = $("#export");

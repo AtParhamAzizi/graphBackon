@@ -1,10 +1,10 @@
 # PyArch Graph
 
-PyArch Graph is a local-first Python architecture explorer. A FastAPI backend reads a directory on the machine where it runs, parses Python with the standard-library AST without importing or executing project code, and exposes a typed graph. The frontend is an animated orbital workspace built entirely with plain HTML, CSS, JavaScript, and inline SVG. No Node.js, frontend packages, build step, or external fonts are needed.
+PyArch Graph is a local-first project architecture explorer. A FastAPI backend reads a directory on the machine where it runs, indexes common source/configuration files, and parses Python with the standard-library AST without importing or executing project code. The frontend is an animated orbital workspace built entirely with plain HTML, CSS, JavaScript, and inline SVG. No Node.js, frontend packages, build step, or external fonts are needed.
 
 ## Architecture
 
-- **Analyzer:** multi-pass AST analysis discovers files, modules, classes, functions, async functions, methods, decorators, signatures, docstrings, source locations, imports, calls, inheritance, route definitions, and outbound HTTP requests.
+- **Analyzer:** indexes common source, configuration, and documentation files; Python receives multi-pass AST analysis for modules, classes, functions, async functions, methods, decorators, signatures, docstrings, source locations, imports, calls, inheritance, route definitions, and outbound HTTP requests.
 - **Graph schema:** file nodes, symbol nodes, external endpoint/library nodes, symbol-level evidence edges, containment edges, and aggregated file-level edges.
 - **API:** background jobs, progress polling, node relationship details, safe source retrieval, and JSON export.
 - **UI:** circular file layout, animated directed connections and ambient orbit effects, searchable file/symbol/dependency views, relationship filters, file-to-symbol drill-down, source snippets, and navigable evidence.
@@ -35,7 +35,7 @@ Then start everything with:
 python app.py
 ```
 
-The launcher starts FastAPI, serves `frontend/index.html`, prints `http://127.0.0.1:8000`, and opens the browser automatically. Choose **Explore the demo project**, or enter a directory path belonging to the backend machine, for example `C:\Users\you\project` or `demo_project`.
+The launcher starts FastAPI, serves `frontend/index.html`, prints `http://127.0.0.1:8000`, and opens the browser automatically. Choose **Explore the demo project**, or enter any readable project directory belonging to the backend machine, for example `C:\Users\you\project` or `demo_project`. Python files receive symbol-level relationships; other supported source and configuration files remain available for browsing and source inspection.
 
 ## Demo
 
@@ -57,6 +57,6 @@ With the server running, open `http://127.0.0.1:8000/tests/graph.test.html` for 
 
 ## Safety and limitations
 
-The scanner never imports or executes analyzed code, installs dependencies, follows symlinks outside the root, or sends source to external services. It skips virtual environments, VCS metadata, caches, build outputs, dependency folders, files matched by `.gitignore`, symlinks, oversized files, and syntax-error files while reporting warnings.
+The scanner never imports or executes analyzed code, installs dependencies, follows symlinks outside the root, or sends source to external services. It indexes common text-based project files and skips virtual environments, VCS metadata, caches, build outputs, dependency folders, files matched by `.gitignore`, symlinks, oversized files, binary files, and syntax-error Python files while reporting warnings.
 
 Bindings and receiver types are static approximations, not runtime traces. Conditional rebinding, multiple-inheritance dispatch order, wildcard exports, and arbitrary dynamic factories cannot be fully resolved; external constructor receivers are inferred from class-style names.
