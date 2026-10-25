@@ -1,5 +1,5 @@
 from __future__ import annotations
-import ast, builtins, fnmatch, hashlib
+import ast, builtins, fnmatch, hashlib, re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -334,6 +334,28 @@ class ProjectAnalyzer:
    key=(source,target,e["type"]); item=result.setdefault(key,{"id":stable_id("file-edge","|".join(key)),"source":source,"target":target,"type":e["type"],"count":0,"status":e["status"],"confidence":e["confidence"],"evidence":[]}); item["count"]+=1; item["confidence"]=min(item["confidence"],e["confidence"])
    if len(item["evidence"])<20:item["evidence"].append({"line":e["line"],"path":e["path"],"evidence":e["evidence"],"relationship_id":e["id"]})
   return list(result.values())
+ def _collect_text_relationships(self):
+  """Create file-level import/include edges for non-Python languages."""
+  by_name={}
+  for fid,file in self.files.items():
+   path=Path(file.path)
+   for key in {path.name,path.stem,file.module,path.as_posix(),path.with_suffix('').as_posix()}:
+    if key:by_name.setdefault(key.replace('\\','/'),fid)
+  patterns=(re.compile(r"^\s*(?:import|export)\s+(?:type\s+)?[^'\"]*?from\s*['\"]([^'\"]+)['\"]|^\s*import\s*['\"]([^'\"]+)['\"]"),re.compile(r"require\(\s*['\"]([^'\"]+)['\"]\s*\)"),re.compile(r"^\s*(?:#\s*include|include)\s*[<\"]([^>\"]+)[>\"]"),re.compile(r"^\s*(?:using|import)\s+([A-Za-z_][\w.]*)\s*;?"),re.compile(r"^\s*use\s+([A-Za-z_][\w:]*)(?:::\*)?\s*;?"))
+  for fid,file in self.files.items():
+   if Path(file.path).suffix.lower()==".py":continue
+   for line_no,line in enumerate(file.source.splitlines(),1):
+    for pattern in patterns:
+     match=pattern.search(line)
+     if not match:continue
+     raw=next((value for value in match.groups() if value),"")
+     normalized=raw.replace('\\','/').removeprefix('./')
+     target=by_name.get(normalized) or by_name.get(Path(normalized).name)
+     if not target:
+      stem=Path(normalized).stem
+      target=next((candidate for key,candidate in by_name.items() if Path(key).stem==stem),None)
+     target=target or f"external:module:{raw}"
+     self._edge(fid,target,"IMPORTS",line_no,"resolved" if target in self.files else "inferred",1 if target in self.files else .8,"Lexical import/include detected.",line.strip())
  def scan(self,progress=None):
   if not self.root.exists() or not self.root.is_dir():raise ValueError("Directory does not exist or is not a directory")
   self._parse_files(progress)
@@ -347,7 +369,7 @@ class ProjectAnalyzer:
   for file in self.files.values():
    if file.path.startswith("src/"):self.module_to_file.setdefault(file.module.removeprefix("src."),file.id)
    if package_root:self.module_to_file.setdefault(".".join(part for part in (self.root.name,file.module) if part),file.id)
-  self._collect_imports(); self._collect_bindings(); self._collect_import_edges(); self._collect_definitions(); self._collect_behavior()
+  self._collect_imports(); self._collect_bindings(); self._collect_import_edges(); self._collect_definitions(); self._collect_behavior(); self._collect_text_relationships()
   nodes=[{"id":f.id,"kind":"file","label":f.path,"path":f.path,"module":f.module,"loc":f.loc,"symbol_count":len(f.symbols)} for f in self.files.values()]
   nodes += [{"id":s.id,"kind":s.kind,"label":s.name,"qualname":s.qualname,"path":s.path,"file_id":s.file_id,"line":s.line,"end_line":s.end_line,"signature":s.signature,"docstring":s.docstring,"decorators":s.decorators,"parent":s.parent,"snippet":self._snippet(self.files[s.file_id],s.line,s.end_line)} for s in self.symbols.values()]
   external={e["target"] for e in self.edges if str(e["target"]).startswith(("external:","unresolved:"))}
