@@ -1,8 +1,11 @@
+
 from __future__ import annotations
 import ast, builtins, fnmatch, hashlib, re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from .language_readers import language_for, reader_for, should_read
 DEFAULT_EXCLUDED={".git",".venv","venv","env","__pycache__","node_modules","dist","build",".mypy_cache",".pytest_cache",".tox",".eggs",".idea",".vscode",".gradle",".next",".nuxt","coverage","target"}
 TEXT_EXTENSIONS={".py",".pyi",".js",".jsx",".mjs",".cjs",".ts",".tsx",".java",".kt",".kts",".go",".rs",".rb",".php",".cs",".c",".h",".cc",".cpp",".cxx",".hpp",".swift",".m",".mm",".scala",".sh",".bash",".zsh",".fish",".ps1",".bat",".cmd",".html",".htm",".css",".scss",".sass",".less",".vue",".svelte",".astro",".sql",".graphql",".gql",".json",".jsonc",".yaml",".yml",".toml",".ini",".cfg",".conf",".env",".xml",".svg",".md",".mdx",".txt",".rst",".csv",".lock"}
 TEXT_FILENAMES={"Dockerfile","Containerfile","Makefile","justfile","Procfile","Gemfile","Rakefile","LICENSE","LICENSE.txt","README","README.md","CHANGELOG","CHANGELOG.md",".dockerignore",".editorconfig",".prettierrc",".eslintrc"}
@@ -51,7 +54,7 @@ class ProjectAnalyzer:
    try:
     rel=path.relative_to(self.root).as_posix()
     if not path.is_file() or path.is_symlink() or self._ignored(path) or any(fnmatch.fnmatch(rel,p) for p in patterns):continue
-    # Unknown extensions are allowed; the read step below rejects binary and non-UTF-8 files so projects in any language can be indexed safely.
+    if not should_read(path): continue
     candidates.append(path)
    except (OSError,ValueError):continue
   candidates.sort()
@@ -63,7 +66,8 @@ class ProjectAnalyzer:
     if path.stat().st_size>self.max_bytes:self.warnings.append({"code":"FILE_TOO_LARGE","message":f"Skipped {rel} because it exceeds {self.max_bytes} bytes."});continue
     source=path.read_text(encoding="utf-8")
     if "\x00" in source:self.warnings.append({"code":"BINARY_FILE","message":f"Skipped {rel} because it contains binary data."});continue
-    tree=ast.parse(source,filename=rel) if path.suffix.lower()==".py" else None
+    reader=reader_for(path)
+    tree=reader.parse_source(source,rel) if reader and reader.parse else None
    except SyntaxError as e:self.warnings.append({"code":"SYNTAX_ERROR","message":f"{rel}:{e.lineno}: {e.msg}"});continue
    except (OSError,UnicodeDecodeError) as e:self.warnings.append({"code":"READ_ERROR","message":f"{rel}: {e}"});continue
    module=self._module_name(path) if tree is not None else path.stem
@@ -370,13 +374,13 @@ class ProjectAnalyzer:
    if file.path.startswith("src/"):self.module_to_file.setdefault(file.module.removeprefix("src."),file.id)
    if package_root:self.module_to_file.setdefault(".".join(part for part in (self.root.name,file.module) if part),file.id)
   self._collect_imports(); self._collect_bindings(); self._collect_import_edges(); self._collect_definitions(); self._collect_behavior(); self._collect_text_relationships()
-  nodes=[{"id":f.id,"kind":"file","label":f.path,"path":f.path,"module":f.module,"loc":f.loc,"symbol_count":len(f.symbols)} for f in self.files.values()]
+  nodes=[{"id":f.id,"kind":"file","label":f.path,"path":f.path,"module":f.module,"language":language_for(Path(f.path)),"loc":f.loc,"symbol_count":len(f.symbols)} for f in self.files.values()]
   nodes += [{"id":s.id,"kind":s.kind,"label":s.name,"qualname":s.qualname,"path":s.path,"file_id":s.file_id,"line":s.line,"end_line":s.end_line,"signature":s.signature,"docstring":s.docstring,"decorators":s.decorators,"parent":s.parent,"snippet":self._snippet(self.files[s.file_id],s.line,s.end_line)} for s in self.symbols.values()]
   external={e["target"] for e in self.edges if str(e["target"]).startswith(("external:","unresolved:"))}
   for entity in sorted(external):
    parts=entity.split(":",2); kind=parts[1] if len(parts)>1 else "unknown"; label=parts[2] if len(parts)>2 else parts[-1]; nodes.append({"id":entity,"kind":"external","external_type":kind,"label":label})
   file_edges=self._aggregate(self.edges)
-  return {"schema_version":"1.3","root":str(self.root),"project":{"is_python":any(Path(file.path).suffix.lower()==".py" for file in self.files.values()),"languages":sorted({Path(file.path).suffix.lower() or "[no extension]" for file in self.files.values()}),"metadata":[n for n in ("pyproject.toml","setup.py","requirements.txt","package.json","Cargo.toml","go.mod","pom.xml","build.gradle") if (self.root/n).exists()]},"nodes":nodes,"edges":self.edges,"file_edges":file_edges,"warnings":self.warnings,"stats":{"python_files":sum(Path(file.path).suffix.lower()==".py" for file in self.files.values()),"files":len(self.files),"indexed_files":len(self.files),"symbols":len(self.symbols),"edges":len(self.edges),"file_edges":len(file_edges)},"limitations":["Python files receive static AST symbol and relationship analysis; other readable project files are indexed and available for source inspection.","Static AST analysis cannot fully recover dynamic dispatch, reflection, monkey-patching, generated code, or runtime decorator behavior.","Assignments, receiver types, and inherited methods use static bindings; conditional rebinding and multiple-inheritance runtime order may differ.","Wildcard imports are reported but their exported names are not guessed.","HTTP requests remain separate from local CALLS and are not mapped to local handlers without explicit static evidence."]}
+  return {"schema_version":"1.3","root":str(self.root),"project":{"is_python":any(Path(file.path).suffix.lower()==".py" for file in self.files.values()),"languages":sorted({language_for(Path(file.path)) for file in self.files.values()}),"metadata":[n for n in ("pyproject.toml","setup.py","requirements.txt","package.json","Cargo.toml","go.mod","pom.xml","build.gradle") if (self.root/n).exists()]},"nodes":nodes,"edges":self.edges,"file_edges":file_edges,"warnings":self.warnings,"stats":{"python_files":sum(Path(file.path).suffix.lower()==".py" for file in self.files.values()),"files":len(self.files),"indexed_files":len(self.files),"symbols":len(self.symbols),"edges":len(self.edges),"file_edges":len(file_edges)},"limitations":["Python files receive static AST symbol and relationship analysis; other readable project files are indexed and available for source inspection.","Static AST analysis cannot fully recover dynamic dispatch, reflection, monkey-patching, generated code, or runtime decorator behavior.","Assignments, receiver types, and inherited methods use static bindings; conditional rebinding and multiple-inheritance runtime order may differ.","Wildcard imports are reported but their exported names are not guessed.","HTTP requests remain separate from local CALLS and are not mapped to local handlers without explicit static evidence."]}
 def analyze_directory(path,exclusions=None,progress=None):return ProjectAnalyzer(path,exclusions).scan(progress)
 
 
