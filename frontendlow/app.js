@@ -1,6 +1,6 @@
 const $ = (selector) => document.querySelector(selector);
 const state = { jobId: null, result: null, files: [], fileLinks: [], selected: null };
-const emptyInspector = '<p class="muted">Pick a bead or a file to inspect it.</p>';
+const emptyInspector = $("#inspector").innerHTML;
 const FULL_VIEW = 1000;
 const view = { x: -500, y: -500, size: FULL_VIEW };
 const pan = { active: false, moved: false, startX: 0, startY: 0, viewX: 0, viewY: 0 };
